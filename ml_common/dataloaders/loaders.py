@@ -6,6 +6,7 @@ from typing import Dict, Any, Tuple
 from .mmap import MmapDataset
 from .kaggle import KaggleDataset, load_sensor_geometry, get_icecube_file_names
 from .i3 import I3IterableDataset, ICECUBE_AVAILABLE
+from .i3_noise import I3NoiseIterableDataset
 from ..utils.collators import IrregularDataCollator
 from ..utils.samplers import RandomChunkSampler
 
@@ -89,6 +90,43 @@ def create_dataloaders(cfg: Dict[str, Any]) -> Tuple[DataLoader, DataLoader]:
             filter_key=data_options.get('filter_key', 'FilterMask'),
             required_filters=required_filters,
             sub_event_stream=data_options.get('sub_event_stream', 'InIceSplit'),
+            mix_n_files=max(1, mix_n_files),
+            shuffle_files=data_options.get('shuffle_files', True),
+            random_seed=seed,
+        )
+
+        train_sampler = None
+        val_sampler = None
+    
+    elif dataloader_type == 'i3noise':
+        if not ICECUBE_AVAILABLE:
+            raise ImportError('I3 dataloader requires the IceCube python modules.')
+
+        required_filters = data_options.get('filter_names', [])
+        mix_n_files = data_options.get('mix_n_files', 4)
+        seed = data_options.get('seed')
+
+        train_dataset = I3NoiseIterableDataset(
+            files=data_options['train_files'],
+            geometry_path=data_options['geometry_path'],
+            pulse_key=data_options.get('pulse_key', 'OfflineInIcePulses'),
+            primary_key=data_options.get('primary_key', 'I3MCTree'),
+            filter_key=data_options.get('filter_key', 'FilterMask'),
+            required_filters=required_filters,
+            sub_event_stream=data_options.get('sub_event_stream', None),
+            mix_n_files=mix_n_files,
+            shuffle_files=data_options.get('shuffle_files', True),
+            random_seed=seed,
+        )
+
+        valid_dataset = I3NoiseIterableDataset(
+            files=data_options['valid_files'],
+            geometry_path=data_options['geometry_path'],
+            pulse_key=data_options.get('pulse_key', 'OfflineInIcePulses'),
+            primary_key=data_options.get('primary_key', 'I3MCTree'),
+            filter_key=data_options.get('filter_key', 'FilterMask'),
+            required_filters=required_filters,
+            sub_event_stream=data_options.get('sub_event_stream', None),
             mix_n_files=max(1, mix_n_files),
             shuffle_files=data_options.get('shuffle_files', True),
             random_seed=seed,
