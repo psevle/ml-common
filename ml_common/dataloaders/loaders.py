@@ -108,6 +108,7 @@ def create_dataloaders(cfg: Dict[str, Any]) -> Tuple[DataLoader, DataLoader]:
 
         train_dataset = I3NoiseIterableDataset(
             files=data_options['train_files'],
+            use_summary_stats=data_options['use_summary_stats'],
             geometry_path=data_options['geometry_path'],
             pulse_key=data_options.get('pulse_key', 'OfflineInIcePulses'),
             primary_key=data_options.get('primary_key', 'I3MCTree'),

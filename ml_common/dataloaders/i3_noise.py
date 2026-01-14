@@ -178,10 +178,12 @@ class I3NoiseIterableDataset(IterableDataset):
                 #features = np.stack([t, np.log1p(q)], axis=1)        # (N,2)
 
                 coords *= 1e-3            # meters/ns -> km/µs
-                
+                assert coords.shape[0] == q.shape[0]
+
                 if self.use_summary_stats:
                     stats = nt_summary_stats.compute_summary_stats(t, q)
-                    features = np.log1p(stats)
+                    stats = np.log1p(stats)
+                    features = np.repeat(stats[None, :], coords.shape[0], axis=0)
 
                 else:
                     features = np.stack([t, np.log1p(q)], axis=1)

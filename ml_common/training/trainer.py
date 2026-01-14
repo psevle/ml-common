@@ -93,7 +93,7 @@ class Trainer:
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=T_max)
         return optimizer, scheduler
 
-    def _setup_mixed_precision(self) -> Optional[torch.amp.GradScaler]:
+    def _setup_mixed_precision(self) -> Optional[torch.cuda.amp.GradScaler]:
         """Setup mixed precision training."""
         self.amp_device = 'cuda' if self.device.type == 'cuda' else 'cpu'
         self.amp_dtype = self._precision_to_dtype(self.precision)
