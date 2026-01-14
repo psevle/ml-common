@@ -16,6 +16,12 @@ except ImportError:  # pragma: no cover - optional dependency
     dataio = dataclasses = icetray = None  # type: ignore
     ICECUBE_AVAILABLE = False
 
+try:
+    import nt_summary_stats
+    HAS_SUMMARY_STATS = True
+except ImportError:
+    nt_summary_stats = None
+    HAS_SUMMARY_STATS = False
 
 def _expand_paths(paths: Sequence[str]) -> List[str]:
     expanded: List[str] = []
@@ -35,6 +41,7 @@ class I3NoiseIterableDataset(IterableDataset):
         self,
         files: Sequence[str],
         geometry_path: str,
+        use_summary_stats: bool = True,
         pulse_key: str = 'OfflineInIcePulses',
         primary_key: str = 'I3MCTree',
         filter_key: str = None,
@@ -48,6 +55,10 @@ class I3NoiseIterableDataset(IterableDataset):
 
         if not ICECUBE_AVAILABLE:
             raise ImportError('I3NoiseIterableDataset requires the IceCube python modules.')
+
+        if use_summary_stats and not HAS_SUMMARY_STATS:
+            raise ImportError("nt_summary_stats package is required for summary stats processing. Please do 'pip install nt--summary-stats'.")
+        self.use_summary_stats = use_summary_stats and HAS_SUMMARY_STATS
 
         self.file_paths = _expand_paths(files)
         if not self.file_paths:
@@ -164,10 +175,17 @@ class I3NoiseIterableDataset(IterableDataset):
                 q = np.asarray(charges, dtype=np.float32)
 
                 coords = np.concatenate([pos, t[:, None]], axis=1)  # (N,4)
-                features = np.stack([t, np.log1p(q)], axis=1)        # (N,2)
+                #features = np.stack([t, np.log1p(q)], axis=1)        # (N,2)
 
                 coords *= 1e-3            # meters/ns -> km/µs
-                features[:, 0] *= 1e-3    # ns -> µs
+                
+                if self.use_summary_stats:
+                    stats = nt_summary_stats.compute_summary_stats(t, q)
+                    features = np.log1p(stats)
+
+                else:
+                    features = np.stack([t, np.log1p(q)], axis=1)
+                    features[:, 0] *= 1e-3    # ns -> µs
 
                 primary = dataclasses.get_most_energetic_neutrino(frame[self.primary_key])
                 ishit = 1 if len(frame["I3MCPESeriesMapWithoutNoise"]) > 0 else 0
