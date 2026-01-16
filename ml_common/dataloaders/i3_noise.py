@@ -175,20 +175,16 @@ class I3NoiseIterableDataset(IterableDataset):
                 q = np.asarray(charges, dtype=np.float32)
 
                 coords = np.concatenate([pos, t[:, None]], axis=1)  # (N,4)
-                #features = np.stack([t, np.log1p(q)], axis=1)        # (N,2)
+                features = np.stack([t, np.log1p(q)], axis=1)        # (N,2)
 
                 coords *= 1e-3            # meters/ns -> km/µs
-                assert coords.shape[0] == q.shape[0]
+                features[:, 0] *= 1e-3
 
-                if self.use_summary_stats:
+                if self.use_summary_stats == True:
                     stats = nt_summary_stats.compute_summary_stats(t, q)
                     stats = np.log1p(stats)
                     features = np.repeat(stats[None, :], coords.shape[0], axis=0)
-
-                else:
-                    features = np.stack([t, np.log1p(q)], axis=1)
-                    features[:, 0] *= 1e-3    # ns -> µs
-
+                
                 primary = dataclasses.get_most_energetic_neutrino(frame[self.primary_key])
                 ishit = 1 if len(frame["I3MCPESeriesMapWithoutNoise"]) > 0 else 0
 
